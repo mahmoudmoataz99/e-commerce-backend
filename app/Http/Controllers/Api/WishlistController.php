@@ -11,45 +11,58 @@ class WishlistController extends Controller
     // GET /api/wishlist
     public function index(Request $request)
     {
+        $userId = $request->user()->id;
+
         $items = WishlistItem::with('product.category')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $userId)
             ->get();
 
         return response()->json($items);
     }
 
     // POST /api/wishlist
-    // this "toggles" - if the product is already wishlisted it removes it,
-    // otherwise it adds it. Matches how toggleWishlist() worked in the app before
+    // This "toggles" the product: if it's already wishlisted, remove it.
+    // If it's not wishlisted yet, add it.
     public function toggle(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $existing = WishlistItem::where('user_id', $request->user()->id)
+        $existingItem = WishlistItem::where('user_id', $userId)
             ->where('product_id', $data['product_id'])
             ->first();
 
-        if ($existing) {
-            $existing->delete();
+        if ($existingItem) {
+            $existingItem->delete();
 
-            return response()->json(['message' => 'Removed from wishlist', 'wishlisted' => false]);
+            return response()->json([
+                'message' => 'Removed from wishlist',
+                'wishlisted' => false,
+            ]);
         }
 
-        $item = WishlistItem::create([
-            'user_id' => $request->user()->id,
+        $newItem = WishlistItem::create([
+            'user_id' => $userId,
             'product_id' => $data['product_id'],
         ]);
-        $item->load('product.category');
+        $newItem->load('product.category');
 
-        return response()->json(['message' => 'Added to wishlist', 'wishlisted' => true, 'item' => $item], 201);
+        return response()->json([
+            'message' => 'Added to wishlist',
+            'wishlisted' => true,
+            'item' => $newItem,
+        ], 201);
     }
 
     // DELETE /api/wishlist/{id}
     public function destroy(Request $request, $id)
     {
-        $item = WishlistItem::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $item = WishlistItem::where('user_id', $userId)->find($id);
 
         if (! $item) {
             return response()->json(['message' => 'Wishlist item not found'], 404);

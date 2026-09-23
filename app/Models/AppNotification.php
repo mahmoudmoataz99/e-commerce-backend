@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+// Called "AppNotification" (table: app_notifications) instead of just
+// "Notification" so it doesn't clash with Laravel's own built-in
+// notifications system.
 class AppNotification extends Model
 {
     protected $table = 'app_notifications';

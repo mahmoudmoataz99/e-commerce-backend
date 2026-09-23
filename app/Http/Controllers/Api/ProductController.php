@@ -9,27 +9,30 @@ use Illuminate\Http\Request;
 class ProductController extends Controller
 {
     // GET /api/products
-    // supports ?category=tops  and  ?search=hoodie  and  ?tag=sale
-    // this is what feeds the shop screen and the search
+    // Supports optional query params: ?category=tops  ?search=hoodie  ?tag=sale
+    // This feeds the shop screen and the search bar.
     public function index(Request $request)
     {
         $query = Product::with('category');
 
-        // filter by category if they gave us one and its not "all"
+        // If they picked a category (and it's not "all"), only show
+        // products in that category.
         if ($request->has('category') && $request->category !== 'all') {
-            $query->whereHas('category', function ($q) use ($request) {
-                $q->where('slug', $request->category);
+            $categorySlug = $request->category;
+
+            $query->whereHas('category', function ($categoryQuery) use ($categorySlug) {
+                $categoryQuery->where('slug', $categorySlug);
             });
         }
 
-        // simple search by name, nothing fancy like full text search
+        // Simple search by product name. Nothing fancy, just a "like" match.
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('name', 'like', '%' . $search . '%');
+            $searchText = $request->search;
+            $query->where('name', 'like', '%' . $searchText . '%');
         }
 
-        // filter by tag, like "sale" or "new" or "bestseller"
-        // this is used for the FEATURED_PRODUCTS / SALE_PRODUCTS sections
+        // Filter by a tag like "sale", "new" or "bestseller".
+        // Used for things like the featured products / sale products section.
         if ($request->filled('tag')) {
             $tag = $request->tag;
             $query->whereJsonContains('tags', $tag);

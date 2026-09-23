@@ -8,7 +8,8 @@ use App\Models\Category;
 class CategoryController extends Controller
 {
     // GET /api/categories
-    // this feeds the category filter chips at the top of the shop screen
+    // Sends back the list of categories. Used for the category filter
+    // chips at the top of the shop screen.
     public function index()
     {
         $categories = Category::orderBy('id')->get();

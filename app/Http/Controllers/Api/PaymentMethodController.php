@@ -11,16 +11,21 @@ class PaymentMethodController extends Controller
     // GET /api/payment-methods
     public function index(Request $request)
     {
-        $methods = PaymentMethod::where('user_id', $request->user()->id)->get();
+        $userId = $request->user()->id;
+
+        $methods = PaymentMethod::where('user_id', $userId)->get();
 
         return response()->json($methods);
     }
 
     // POST /api/payment-methods
-    // again, NOT a real payment integration. only stores label + last 4 digits for display.
-    // do not send full card numbers here, this is just a demo/portfolio project
+    // Again: this is NOT a real payment integration. It only stores a
+    // label and the last 4 digits for display. Never send full card
+    // numbers here - this is just a demo/portfolio project.
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'label' => 'required|string|max:100',
             'last4' => 'nullable|string|max:4',
@@ -29,11 +34,11 @@ class PaymentMethodController extends Controller
         ]);
 
         if (! empty($data['is_default'])) {
-            PaymentMethod::where('user_id', $request->user()->id)->update(['is_default' => false]);
+            PaymentMethod::where('user_id', $userId)->update(['is_default' => false]);
         }
 
         $method = PaymentMethod::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'label' => $data['label'],
             'last4' => $data['last4'] ?? null,
             'type' => $data['type'] ?? 'card',
@@ -44,16 +49,21 @@ class PaymentMethodController extends Controller
     }
 
     // PUT /api/payment-methods/{id}/default
-    // used when tapping a card to make it the default one
+    // Used when the user taps a saved card to make it their default one.
     public function setDefault(Request $request, $id)
     {
-        $method = PaymentMethod::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $method = PaymentMethod::where('user_id', $userId)->find($id);
 
         if (! $method) {
             return response()->json(['message' => 'Payment method not found'], 404);
         }
 
-        PaymentMethod::where('user_id', $request->user()->id)->update(['is_default' => false]);
+        // Turn off "default" on everything first, then turn it on for
+        // just this one.
+        PaymentMethod::where('user_id', $userId)->update(['is_default' => false]);
+
         $method->is_default = true;
         $method->save();
 
@@ -63,7 +73,9 @@ class PaymentMethodController extends Controller
     // DELETE /api/payment-methods/{id}
     public function destroy(Request $request, $id)
     {
-        $method = PaymentMethod::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $method = PaymentMethod::where('user_id', $userId)->find($id);
 
         if (! $method) {
             return response()->json(['message' => 'Payment method not found'], 404);

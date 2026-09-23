@@ -25,6 +25,7 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    // Every order has a bunch of order items (the products that were bought).
     public function items()
     {
         return $this->hasMany(OrderItem::class);

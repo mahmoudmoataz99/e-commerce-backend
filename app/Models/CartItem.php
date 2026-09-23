@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+// One row here = one line in someone's shopping cart.
 class CartItem extends Model
 {
     protected $fillable = [

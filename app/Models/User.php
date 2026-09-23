@@ -7,11 +7,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+// This is the User model. It represents one row in the "users" table.
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    // these are the fields we are allowed to fill using User::create([...])
+    // These are the only fields we allow to be set with User::create([...])
+    // This stops someone from sneaking in extra fields we don't want them to set.
     protected $fillable = [
         'name',
         'email',
@@ -19,13 +21,14 @@ class User extends Authenticatable
         'phone',
     ];
 
-    // these fields should never show up when we return the user as json
-    // (super important, dont want to leak password hashes to the app!)
+    // Never show these fields when we turn a user into JSON.
+    // Very important - we do NOT want to leak the password hash to the app!
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
+    // This tells Laravel how to convert some columns automatically.
     protected function casts(): array
     {
         return [
@@ -34,7 +37,9 @@ class User extends Authenticatable
         ];
     }
 
-    // helper relations, so we can do $user->orders, $user->addresses etc
+    // Below are just helper relationships so we can write things like
+    // $user->orders or $user->addresses instead of writing the query by hand.
+
     public function orders()
     {
         return $this->hasMany(Order::class);
@@ -60,6 +65,9 @@ class User extends Authenticatable
         return $this->hasMany(WishlistItem::class);
     }
 
+    // Named "notifications_list" and not "notifications" because Laravel's
+    // own Notifiable trait (used above) already has a notifications()
+    // method for its own built-in notifications system.
     public function notifications_list()
     {
         return $this->hasMany(AppNotification::class, 'user_id');

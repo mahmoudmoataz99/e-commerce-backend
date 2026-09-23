@@ -9,18 +9,21 @@ use Illuminate\Http\Request;
 class PromoCodeController extends Controller
 {
     // POST /api/promo-codes/check
-    // used on the checkout screen when they type a code and hit "Apply"
+    // Used on the checkout screen when the user types a code and hits "Apply".
     public function check(Request $request)
     {
         $data = $request->validate([
             'code' => 'required|string',
         ]);
 
-        // always check uppercase since thats how we save them, so
-        // "save10" and "SAVE10" both work the same
+        // Promo codes are always saved in uppercase, so we uppercase
+        // whatever the user typed before looking it up. That way
+        // "save10" and "SAVE10" both work the same.
         $code = strtoupper($data['code']);
 
-        $promo = PromoCode::where('code', $code)->where('is_active', true)->first();
+        $promo = PromoCode::where('code', $code)
+            ->where('is_active', true)
+            ->first();
 
         if (! $promo) {
             return response()->json([

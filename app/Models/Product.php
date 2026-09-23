@@ -22,9 +22,13 @@ class Product extends Model
         'colors',
     ];
 
-    // this tells laravel to automatically turn these into the right php type
-    // so tags/sizes/colors come back as real arrays, not json strings
-    // and in_stock comes back as true/false not 1/0
+    // This tells Laravel to automatically convert these columns into the
+    // right PHP type when we read the model, and back when we save it.
+    // - tags / sizes / colors: stored as JSON text in the DB, but we want
+    //   them to come back out as normal PHP arrays.
+    // - in_stock: stored as 0/1, but we want true/false.
+    // - price fields: kept as strings with 2 decimal places so we don't get
+    //   weird float rounding.
     protected function casts(): array
     {
         return [
@@ -38,6 +42,7 @@ class Product extends Model
         ];
     }
 
+    // A product belongs to one category.
     public function category()
     {
         return $this->belongsTo(Category::class);

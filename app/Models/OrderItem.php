@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+// This is basically a snapshot copy of a cart item, saved at the moment
+// the order was placed, so order history stays correct even if the
+// product's price/name/image changes (or gets deleted) later.
 class OrderItem extends Model
 {
     protected $fillable = [

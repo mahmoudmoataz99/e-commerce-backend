@@ -11,7 +11,9 @@ class AddressController extends Controller
     // GET /api/addresses
     public function index(Request $request)
     {
-        $addresses = Address::where('user_id', $request->user()->id)
+        $userId = $request->user()->id;
+
+        $addresses = Address::where('user_id', $userId)
             ->select('id', 'label', 'address', 'is_default')
             ->get();
 
@@ -21,19 +23,24 @@ class AddressController extends Controller
     // POST /api/addresses
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'label' => 'required|string|max:100',
             'address' => 'required|string|max:500',
             'is_default' => 'nullable|boolean',
         ]);
 
-        // if they want this to be default, un-default all the others first
-        if (! empty($data['is_default'])) {
-            Address::where('user_id', $request->user()->id)->update(['is_default' => false]);
+        $wantsToBeDefault = ! empty($data['is_default']);
+
+        // Only one address can be the default. If they want this new one
+        // to be default, first turn off "default" on every other address.
+        if ($wantsToBeDefault) {
+            Address::where('user_id', $userId)->update(['is_default' => false]);
         }
 
         $address = Address::create([
-            'user_id' => $request->user()->id,
+            'user_id' => $userId,
             'label' => $data['label'],
             'address' => $data['address'],
             'is_default' => $data['is_default'] ?? false,
@@ -45,7 +52,9 @@ class AddressController extends Controller
     // PUT /api/addresses/{id}
     public function update(Request $request, $id)
     {
-        $address = Address::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $address = Address::where('user_id', $userId)->find($id);
 
         if (! $address) {
             return response()->json(['message' => 'Address not found'], 404);
@@ -58,7 +67,7 @@ class AddressController extends Controller
         ]);
 
         if (! empty($data['is_default'])) {
-            Address::where('user_id', $request->user()->id)->update(['is_default' => false]);
+            Address::where('user_id', $userId)->update(['is_default' => false]);
         }
 
         $address->update($data);
@@ -69,7 +78,9 @@ class AddressController extends Controller
     // DELETE /api/addresses/{id}
     public function destroy(Request $request, $id)
     {
-        $address = Address::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $address = Address::where('user_id', $userId)->find($id);
 
         if (! $address) {
             return response()->json(['message' => 'Address not found'], 404);

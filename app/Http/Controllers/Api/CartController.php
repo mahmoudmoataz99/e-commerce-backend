@@ -4,27 +4,33 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CartItem;
-use App\Models\Product;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
     // GET /api/cart
-    // gets all the cart items for the logged in user, with the product info attached
+    // Gets every cart item for the logged in user, with the product info
+    // (and the product's category) attached so the app doesn't have to
+    // make extra requests.
     public function index(Request $request)
     {
+        $userId = $request->user()->id;
+
         $items = CartItem::with('product.category')
-            ->where('user_id', $request->user()->id)
+            ->where('user_id', $userId)
             ->get();
 
         return response()->json($items);
     }
 
     // POST /api/cart
-    // adds a product to the cart. if its already in there (same product + size + color)
-    // then we just add 1 to the quantity instead of making a duplicate row
+    // Adds a product to the cart. If the exact same product + size + color
+    // is already in the cart, we just increase the quantity instead of
+    // creating a duplicate row.
     public function store(Request $request)
     {
+        $userId = $request->user()->id;
+
         $data = $request->validate([
             'product_id' => 'required|exists:products,id',
             'selected_size' => 'nullable|string',
@@ -32,26 +38,28 @@ class CartController extends Controller
             'quantity' => 'nullable|integer|min:1',
         ]);
 
-        $quantity = $data['quantity'] ?? 1;
+        $quantityToAdd = $data['quantity'] ?? 1;
+        $size = $data['selected_size'] ?? null;
+        $color = $data['selected_color'] ?? null;
 
-        // check if we already have this exact combo in the cart
-        $existing = CartItem::where('user_id', $request->user()->id)
+        // See if this exact combo is already in the cart.
+        $existingItem = CartItem::where('user_id', $userId)
             ->where('product_id', $data['product_id'])
-            ->where('selected_size', $data['selected_size'] ?? null)
-            ->where('selected_color', $data['selected_color'] ?? null)
+            ->where('selected_size', $size)
+            ->where('selected_color', $color)
             ->first();
 
-        if ($existing) {
-            $existing->quantity = $existing->quantity + $quantity;
-            $existing->save();
-            $item = $existing;
+        if ($existingItem) {
+            $existingItem->quantity = $existingItem->quantity + $quantityToAdd;
+            $existingItem->save();
+            $item = $existingItem;
         } else {
             $item = CartItem::create([
-                'user_id' => $request->user()->id,
+                'user_id' => $userId,
                 'product_id' => $data['product_id'],
-                'selected_size' => $data['selected_size'] ?? null,
-                'selected_color' => $data['selected_color'] ?? null,
-                'quantity' => $quantity,
+                'selected_size' => $size,
+                'selected_color' => $color,
+                'quantity' => $quantityToAdd,
             ]);
         }
 
@@ -61,10 +69,12 @@ class CartController extends Controller
     }
 
     // PUT /api/cart/{id}
-    // used when they tap the + / - buttons to change quantity
+    // Used when the user taps the + / - buttons to change the quantity.
     public function update(Request $request, $id)
     {
-        $item = CartItem::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $item = CartItem::where('user_id', $userId)->find($id);
 
         if (! $item) {
             return response()->json(['message' => 'Cart item not found'], 404);
@@ -84,7 +94,9 @@ class CartController extends Controller
     // DELETE /api/cart/{id}
     public function destroy(Request $request, $id)
     {
-        $item = CartItem::where('user_id', $request->user()->id)->find($id);
+        $userId = $request->user()->id;
+
+        $item = CartItem::where('user_id', $userId)->find($id);
 
         if (! $item) {
             return response()->json(['message' => 'Cart item not found'], 404);
@@ -96,10 +108,12 @@ class CartController extends Controller
     }
 
     // DELETE /api/cart
-    // wipes the whole cart, used after checkout is done or a "clear cart" button
+    // Empties the whole cart. Used after checkout, or from a "clear cart" button.
     public function clear(Request $request)
     {
-        CartItem::where('user_id', $request->user()->id)->delete();
+        $userId = $request->user()->id;
+
+        CartItem::where('user_id', $userId)->delete();
 
         return response()->json(['message' => 'Cart cleared']);
     }

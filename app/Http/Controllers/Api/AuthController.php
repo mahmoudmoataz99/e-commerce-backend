@@ -11,24 +11,26 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     // POST /api/register
+    // Creates a new account and immediately logs them in by handing back
+    // an API token.
     public function register(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users,email',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users,email',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::create([
-            'name'     => $data['name'],
-            'email'    => $data['email'],
+        $newUser = User::create([
+            'name' => $data['name'],
+            'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
 
-        $token = $user->createToken('api')->plainTextToken;
+        $token = $newUser->createToken('api')->plainTextToken;
 
         return response()->json([
-            'user'  => $user,
+            'user' => $newUser,
             'token' => $token,
         ], 201);
     }
@@ -37,12 +39,13 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $data = $request->validate([
-            'email'    => 'required|string|email',
+            'email' => 'required|string|email',
             'password' => 'required|string',
         ]);
 
         $user = User::where('email', $data['email'])->first();
 
+        // Check both: does the user exist, AND does the password match.
         if (! $user || ! Hash::check($data['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The email or password is incorrect.'],
@@ -52,12 +55,14 @@ class AuthController extends Controller
         $token = $user->createToken('api')->plainTextToken;
 
         return response()->json([
-            'user'  => $user,
+            'user' => $user,
             'token' => $token,
         ]);
     }
 
     // POST /api/logout
+    // Deletes only the token that was used for this request, so other
+    // devices the user is logged in on stay logged in.
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -68,6 +73,7 @@ class AuthController extends Controller
     }
 
     // GET /api/me
+    // Returns whoever the current Bearer token belongs to.
     public function me(Request $request)
     {
         return response()->json($request->user());
